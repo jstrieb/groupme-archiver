@@ -17,13 +17,13 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1">
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="500.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="groupmearchivergui.FXMLDocumentController">
    <children>
       <MenuBar>
         <menus>
           <Menu mnemonicParsing="false" text="File">
             <items>
+                  <MenuItem mnemonicParsing="false" onAction="#handleRemoveApiKeyMenuItem" text="Remove Stored API Key" />
               <MenuItem mnemonicParsing="false" text="Close" />
             </items>
           </Menu>
@@ -36,7 +36,7 @@
       </MenuBar>
       <HBox prefHeight="448.0" prefWidth="600.0" VBox.vgrow="ALWAYS">
          <children>
-            <ListView disable="true" minWidth="100.0" prefHeight="374.0" prefWidth="250.0" />
+            <ListView fx:id="groupListView" disable="true" minWidth="100.0" prefHeight="374.0" prefWidth="250.0" />
             <VBox prefHeight="374.0" prefWidth="530.0" HBox.hgrow="ALWAYS">
                <children>
                   <HBox alignment="CENTER" prefHeight="40.0" prefWidth="441.0" spacing="10.0">
@@ -46,7 +46,7 @@
                               <Insets />
                            </HBox.margin>
                         </Label>
-                        <TextField HBox.hgrow="ALWAYS">
+                        <TextField fx:id="apiKeyTextField" HBox.hgrow="ALWAYS">
                            <HBox.margin>
                               <Insets />
                            </HBox.margin>
@@ -54,7 +54,8 @@
                               <Cursor fx:constant="TEXT" />
                            </cursor>
                         </TextField>
-                        <Button alignment="CENTER" mnemonicParsing="false" text="Use Key">
+                        <CheckBox fx:id="rememberApiKeyCheckBox" mnemonicParsing="false" text="Remember Key" />
+                        <Button alignment="CENTER" mnemonicParsing="false" onAction="#handleApiKeyButtonAction" text="Use Key">
                            <HBox.margin>
                               <Insets />
                            </HBox.margin>
@@ -68,11 +69,11 @@
                      </padding>
                   </HBox>
                   <Separator prefWidth="100.0" />
-                  <VBox prefHeight="374.0" prefWidth="530.0">
+                  <VBox fx:id="optionsPanel" disable="true" prefHeight="374.0" prefWidth="530.0">
                      <children>
                         <FlowPane alignment="CENTER" columnHalignment="CENTER" hgap="20.0" prefHeight="80.0" prefWidth="441.0" vgap="20.0">
                            <children>
-                              <CheckBox mnemonicParsing="false" text="Download Messages">
+                              <CheckBox mnemonicParsing="false" selected="true" text="Download Messages">
                                  <cursor>
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
@@ -93,17 +94,17 @@
                            </padding>
                            <children>
                               <Label text="Save messages as:" />
-                              <RadioButton mnemonicParsing="false" text="JSON">
+                              <RadioButton mnemonicParsing="false" selected="true" text="JSON">
                                  <cursor>
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
                               </RadioButton>
-                              <RadioButton mnemonicParsing="false" text="CSV">
+                              <RadioButton disable="true" mnemonicParsing="false" text="CSV">
                                  <cursor>
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
                               </RadioButton>
-                              <RadioButton mnemonicParsing="false" text="Plain Text">
+                              <RadioButton disable="true" mnemonicParsing="false" text="Plain Text">
                                  <cursor>
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
@@ -130,7 +131,7 @@
                         </HBox>
                         <HBox alignment="CENTER" prefHeight="55.0" prefWidth="441.0" spacing="10.0">
                            <children>
-                              <ProgressBar minHeight="20.0" minWidth="20.0" prefHeight="20.0" prefWidth="402.0" progress="0.0" HBox.hgrow="ALWAYS">
+                              <ProgressBar minHeight="20.0" minWidth="20.0" prefHeight="20.0" prefWidth="600.0" progress="0.0" HBox.hgrow="ALWAYS">
                                  <HBox.margin>
                                     <Insets />
                                  </HBox.margin>
