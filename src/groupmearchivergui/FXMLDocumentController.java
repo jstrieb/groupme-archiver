@@ -3,6 +3,7 @@
  */
 package groupmearchivergui;
 
+import groupmeapi.GroupMeAPI;
 import static groupmearchivergui.GroupMeArchiverGUI.error;
 
 import java.net.URL;
@@ -81,6 +82,7 @@ public class FXMLDocumentController implements Initializable {
             }
         }
         
+        GroupMeAPI.getGroups(API_KEY);
         // TODO: Get the group list and check that the API key is valid
         // TODO: Set the group list in the panel on the left
         
@@ -96,7 +98,7 @@ public class FXMLDocumentController implements Initializable {
      */
     
     /**
-     * Remove a stored API key by replacing it with the empty string
+     * Remove a stored API key by overwriting it with the empty string
      * 
      * @param event unused
      */
