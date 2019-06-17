@@ -16,8 +16,12 @@ import javafx.stage.Stage;
  */
 public class GroupMeArchiverGUI extends Application {
     
+    private static Stage stage;
+    
     @Override
     public void start(Stage stage) throws Exception {
+        this.stage = stage;
+        
         // Configure the window
         stage.setTitle("GroupMe Archiver");
         setUserAgentStylesheet(STYLESHEET_MODENA);
@@ -43,6 +47,19 @@ public class GroupMeArchiverGUI extends Application {
         alert.setHeaderText("Error!");
         alert.setContentText(errorMessage);
         alert.showAndWait();
+    }
+    
+    /**
+     * Set the static stage title to the input text
+     * 
+     * @param title title to set the window to 
+     */
+    public static void changeWindowTitle(String title) {
+        if (title.equals("")) {
+            stage.setTitle("GroupMe Archiver");
+        } else {
+            stage.setTitle("GroupMe Archiver - " + title);
+        }
     }
 
     /**

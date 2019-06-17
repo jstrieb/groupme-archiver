@@ -12,6 +12,7 @@
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
@@ -34,10 +35,10 @@
           </Menu>
         </menus>
       </MenuBar>
-      <HBox prefHeight="448.0" prefWidth="600.0" VBox.vgrow="ALWAYS">
-         <children>
+      <SplitPane dividerPositions="0.25" prefHeight="160.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
+        <items>
             <ListView fx:id="groupListView" disable="true" minWidth="100.0" prefHeight="374.0" prefWidth="250.0" />
-            <VBox prefHeight="374.0" prefWidth="530.0" HBox.hgrow="ALWAYS">
+            <VBox prefHeight="374.0" prefWidth="530.0">
                <children>
                   <HBox alignment="CENTER" prefHeight="40.0" prefWidth="441.0" spacing="10.0">
                      <children>
@@ -54,8 +55,8 @@
                               <Cursor fx:constant="TEXT" />
                            </cursor>
                         </TextField>
-                        <CheckBox fx:id="rememberApiKeyCheckBox" mnemonicParsing="false" text="Remember Key" />
-                        <Button alignment="CENTER" mnemonicParsing="false" onAction="#handleApiKeyButtonAction" text="Use Key">
+                        <CheckBox fx:id="rememberApiKeyCheckBox" mnemonicParsing="false" onAction="#handleRememberApiKeyCheckBoxSelected" text="Remember Key" />
+                        <Button alignment="CENTER" defaultButton="true" mnemonicParsing="false" onAction="#handleApiKeyButtonAction" text="Use Key">
                            <HBox.margin>
                               <Insets />
                            </HBox.margin>
@@ -69,7 +70,7 @@
                      </padding>
                   </HBox>
                   <Separator prefWidth="100.0" />
-                  <VBox fx:id="optionsPanel" disable="true" prefHeight="374.0" prefWidth="530.0">
+                  <VBox fx:id="optionsPanel" disable="true" prefHeight="500.0" prefWidth="595.0">
                      <children>
                         <FlowPane alignment="CENTER" columnHalignment="CENTER" hgap="20.0" prefHeight="80.0" prefWidth="441.0" vgap="20.0">
                            <children>
@@ -78,7 +79,7 @@
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
                               </CheckBox>
-                              <CheckBox mnemonicParsing="false" text="Download Media">
+                              <CheckBox disable="true" mnemonicParsing="false" text="Download Media">
                                  <cursor>
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
@@ -143,6 +144,7 @@
                         </HBox>
                         <HBox alignment="CENTER_RIGHT" prefHeight="50.0" prefWidth="441.0" spacing="20.0" VBox.vgrow="ALWAYS">
                            <children>
+                              <CheckBox disable="true" mnemonicParsing="false" text="Use Multithreading" />
                               <Button alignment="CENTER" disable="true" mnemonicParsing="false" text="Pause">
                                  <HBox.margin>
                                     <Insets />
@@ -171,7 +173,7 @@
                   </VBox>
                </children>
             </VBox>
-         </children>
-      </HBox>
+        </items>
+      </SplitPane>
    </children>
 </VBox>
