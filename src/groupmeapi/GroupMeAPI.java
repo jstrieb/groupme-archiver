@@ -7,6 +7,8 @@
 
 package groupmeapi;
 
+import static groupmearchivergui.GroupMeArchiverGUI.error;
+
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,9 +16,10 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import static groupmearchivergui.GroupMeArchiverGUI.error;
 import java.io.File;
 import java.util.LinkedHashMap;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.fluent.Request;
@@ -107,7 +110,7 @@ public class GroupMeAPI {
      * @param group
      * @return 
      */
-    public static void getMessages(ObjectNode group, String groupID, String API_KEY, File outfile) {
+    public static void getMessages(ObjectNode group, String groupID, String API_KEY, File outfile, ProgressBar progressBar) {
         String raw;
         try {
             // Get first 100 messages
@@ -127,6 +130,8 @@ public class GroupMeAPI {
             
             // Get remaining messages
             while (messageList.size() < totalCount) {
+                progressBar.setProgress((double) messageList.size() / totalCount);
+                
                 raw = Request
                         .Get("https://api.groupme.com/v3/groups/" + groupID + "/messages?limit=100&token=" + API_KEY)
                         .execute()
@@ -137,7 +142,9 @@ public class GroupMeAPI {
                 messages = (ArrayNode) response.path("messages");
                 messageList.addAll(messages);
             }
+            progressBar.setProgress((double) 1.0);
             
+            // Write the files
             ObjectWriter writer = mapper.writer(new DefaultPrettyPrinter());
             writer.writeValue(outfile, group);
         } catch (Exception ex) {
