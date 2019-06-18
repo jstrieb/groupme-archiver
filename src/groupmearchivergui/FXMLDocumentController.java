@@ -27,6 +27,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.VBox;
@@ -203,6 +204,9 @@ public class FXMLDocumentController implements Initializable {
      *************************************************************************
      */
     
+    @FXML
+    private ProgressBar mainProgressBar;
+    
     /**
      * Begin the action of archiving -- handle calls to archive messages and media
      * 
@@ -212,6 +216,7 @@ public class FXMLDocumentController implements Initializable {
     private void handleBeginArchivingAction(ActionEvent event) {
         preferences.put("CWD", saveToFolderTextField.getText());
         ObjectNode group = GroupMeAPI.getGroupInfo(API_KEY, groupID);
+        int totalCount = group.path("messages").path("count").asInt();
         
         // Make a folder for saving data
         Path groupFolderPath = Paths.get(saveToFolderTextField.getText(), group.path("name").asText()).toAbsolutePath();
@@ -221,9 +226,21 @@ public class FXMLDocumentController implements Initializable {
             return;
         }
         
-        Path messageFilePath = Paths.get(groupFolderPath.toString(), "messages.json");
-        File messageFile = messageFilePath.toFile();
-        GroupMeAPI.getMessages(group, groupID, API_KEY, messageFile);
+        // Download the messages and save (in a separate thread so it doesn't block the UI)
+        Thread downloadThread = new Thread() {
+            @Override
+            public void run() {
+                super.run();
+                
+                Path messageFilePath = Paths.get(groupFolderPath.toString(), "messages.json");
+                File messageFile = messageFilePath.toFile();
+                GroupMeAPI.getMessages(group, groupID, API_KEY, messageFile, mainProgressBar);
+            }
+        };
+        downloadThread.setDaemon(true);
+        downloadThread.start();
+        
+        statusLabel.setText("Downloading " + totalCount + " messages...");
     }
     
     

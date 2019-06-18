@@ -139,7 +139,7 @@
                         </HBox>
                         <HBox alignment="CENTER" prefHeight="55.0" prefWidth="2000.0" spacing="10.0">
                            <children>
-                              <ProgressBar minHeight="20.0" minWidth="20.0" prefHeight="20.0" prefWidth="2000.0" progress="0.0" HBox.hgrow="ALWAYS">
+                              <ProgressBar fx:id="mainProgressBar" minHeight="20.0" minWidth="20.0" prefHeight="20.0" prefWidth="2000.0" progress="0.0" HBox.hgrow="ALWAYS">
                                  <HBox.margin>
                                     <Insets />
                                  </HBox.margin>
