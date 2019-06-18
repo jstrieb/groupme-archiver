@@ -3,12 +3,15 @@
  */
 package groupmearchivergui;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import groupmeapi.GroupMeAPI;
 import static groupmearchivergui.GroupMeArchiverGUI.changeWindowTitle;
 import static groupmearchivergui.GroupMeArchiverGUI.error;
 import java.io.File;
 
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -208,7 +211,19 @@ public class FXMLDocumentController implements Initializable {
     @FXML
     private void handleBeginArchivingAction(ActionEvent event) {
         preferences.put("CWD", saveToFolderTextField.getText());
+        ObjectNode group = GroupMeAPI.getGroupInfo(API_KEY, groupID);
         
+        // Make a folder for saving data
+        Path groupFolderPath = Paths.get(saveToFolderTextField.getText(), group.path("name").asText()).toAbsolutePath();
+        File groupFolder = groupFolderPath.toFile();
+        if ((!groupFolder.exists() || !groupFolder.isDirectory()) && !groupFolder.mkdirs()) {
+            error("Failed to create folder " + groupFolder.getAbsolutePath());
+            return;
+        }
+        
+        Path messageFilePath = Paths.get(groupFolderPath.toString(), "messages.json");
+        File messageFile = messageFilePath.toFile();
+        GroupMeAPI.getMessages(group, groupID, API_KEY, messageFile);
     }
     
     
