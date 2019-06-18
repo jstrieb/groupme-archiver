@@ -6,22 +6,28 @@ package groupmearchivergui;
 import groupmeapi.GroupMeAPI;
 import static groupmearchivergui.GroupMeArchiverGUI.changeWindowTitle;
 import static groupmearchivergui.GroupMeArchiverGUI.error;
+import java.io.File;
 
 import java.net.URL;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 
 /**
  * The following code is organized based on the desired flow of user
@@ -119,6 +125,7 @@ public class FXMLDocumentController implements Initializable {
         groupListView.setDisable(false);
     }
     
+    
 
     /**
      *************************************************************************
@@ -126,19 +133,37 @@ public class FXMLDocumentController implements Initializable {
      *************************************************************************
      */
     
+    @FXML
+    private Button beginArchivingButton;
+    @FXML
+    private Button useKeyButton;
+    @FXML
+    private ToggleGroup messageFormatToggleGroup;
+    @FXML
+    private TextField saveToFolderTextField;
+    @FXML
+    private VBox root;
+    @FXML
+    private Label statusLabel;
+    
     /**
      * Update the window title, enable the additional options to download,
      * and set global variable with the Group ID to be downloaded when the user
      * selects something in the left sidebar
      * 
-     * @param groupName 
+     * @param groupName the name of the group (key in the groupList)
      */
     @FXML
     private void handleListViewSelection(String groupName) {
-        this.groupID = groupList.get(groupName);
+        // Assume groupName in groupList otherwise something has gone horribly wrong
+        groupID = groupList.get(groupName);
         changeWindowTitle("Archive \"" + groupName + "\"");
         optionsPanel.setDisable(false);
+        beginArchivingButton.setDefaultButton(true);
+        useKeyButton.setDefaultButton(false);
+        statusLabel.setText("Archive group \"" + groupName + "\"");
     }
+    
     
     /**
      * Update the window title, and disable the ability to download when there
@@ -148,7 +173,53 @@ public class FXMLDocumentController implements Initializable {
     private void handleListViewUnselection() {
         changeWindowTitle("");
         optionsPanel.setDisable(true);
+        statusLabel.setText("");
     }
+    
+    
+    /**
+     * Open a directory selection dialog so the user can pick where to download
+     * the data
+     * 
+     * @param event unused
+     */
+    @FXML
+    private void handleBrowseButtonAction(ActionEvent event) {
+        DirectoryChooser fileChooser = new DirectoryChooser();
+        fileChooser.setInitialDirectory(new File(saveToFolderTextField.getText()));
+        fileChooser.setTitle("Choose a directory to put downloaded messages and media...");
+        File file = fileChooser.showDialog(root.getScene().getWindow());
+        saveToFolderTextField.setText(file.getAbsolutePath());
+    }
+    
+    
+
+    /**
+     *************************************************************************
+     * Step 3: Download the messages (if applicable)
+     *************************************************************************
+     */
+    
+    /**
+     * Begin the action of archiving -- handle calls to archive messages and media
+     * 
+     * @param event unused
+     */
+    @FXML
+    private void handleBeginArchivingAction(ActionEvent event) {
+        preferences.put("CWD", saveToFolderTextField.getText());
+        
+    }
+    
+    
+
+    /**
+     *************************************************************************
+     * Step 4: Download the media (if applicable)
+     *************************************************************************
+     */
+    
+    // TODO: Implement
     
     
 
@@ -168,6 +239,45 @@ public class FXMLDocumentController implements Initializable {
         preferences.put("API_KEY", "");
         apiKeyTextField.setText("");
         rememberApiKeyCheckBox.setSelected(false);
+    }
+    
+    
+    /**
+     * Exit the application
+     * 
+     * @param event unused
+     */
+    @FXML
+    private void handleCloseAction(ActionEvent event) {
+        System.exit(0);
+    }
+    
+    
+    /**
+     * Show a popup with information about the software
+     * 
+     * @param event unused
+     */
+    @FXML
+    private void handleAboutAction(ActionEvent event) {
+        Alert popup = new Alert(Alert.AlertType.INFORMATION);
+        popup.setHeaderText("About GroupMe Archiver");
+        popup.setContentText("This application was created in June 2019 by Jacob Strieb.");
+        popup.showAndWait();
+    }
+    
+    
+    /**
+     * Delete all stored preferences
+     * 
+     * @param event unused
+     */
+    @FXML
+    private void handleRemoveAllPreferencesAction(ActionEvent event) {
+        try {
+            preferences.clear();
+        } catch (BackingStoreException ex) {
+        }
     }
 
     
@@ -192,6 +302,13 @@ public class FXMLDocumentController implements Initializable {
         if (!API_KEY.equals("")) {
             rememberApiKeyCheckBox.setSelected(true);
         }
+        
+        // Load a remembered directory from storage if possible, otherwise show CWD
+        String currentWorkingDirectory = preferences.get("CWD", "");
+        if (currentWorkingDirectory.equals("")) {
+            currentWorkingDirectory = System.getProperty("user.home");
+        }
+        saveToFolderTextField.setText(currentWorkingDirectory);
     }
 
 }
