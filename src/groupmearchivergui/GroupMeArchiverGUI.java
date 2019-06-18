@@ -35,6 +35,7 @@ public class GroupMeArchiverGUI extends Application {
         stage.show();
     }
 
+    
     /**
      * Show an error dialog to the user
      *
@@ -49,6 +50,7 @@ public class GroupMeArchiverGUI extends Application {
         alert.showAndWait();
     }
     
+    
     /**
      * Set the static stage title to the input text
      * 
@@ -61,7 +63,8 @@ public class GroupMeArchiverGUI extends Application {
             stage.setTitle("GroupMe Archiver - " + title);
         }
     }
-
+    
+    
     /**
      * @param args the command line arguments
      */
