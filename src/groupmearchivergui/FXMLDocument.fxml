@@ -152,7 +152,7 @@
                         </HBox>
                         <HBox alignment="CENTER_RIGHT" prefHeight="50.0" prefWidth="441.0" spacing="20.0" VBox.vgrow="ALWAYS">
                            <children>
-                              <CheckBox disable="true" mnemonicParsing="false" text="Use Multithreading" />
+                              <CheckBox fx:id="useMultithreadingCheckBox" mnemonicParsing="false" selected="true" text="Use Multithreading" />
                               <Button fx:id="beginArchivingButton" alignment="CENTER" mnemonicParsing="false" onAction="#handleBeginArchivingAction" text="Begin Archiving">
                                  <HBox.margin>
                                     <Insets />

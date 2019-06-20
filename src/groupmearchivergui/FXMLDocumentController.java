@@ -241,6 +241,8 @@ public class FXMLDocumentController implements Initializable {
     private CheckBox downloadMessagesCheckBox;
     @FXML
     private CheckBox downloadMediaCheckBox;
+    @FXML
+    private CheckBox useMultithreadingCheckBox;
     
     /**
      * Begin the action of archiving -- handle calls to archive messages and media
