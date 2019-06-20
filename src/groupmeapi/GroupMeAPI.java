@@ -134,8 +134,9 @@ public class GroupMeAPI {
             while (messageList.size() < totalCount) {
                 progressBar.setProgress((double) messageList.size() / totalCount);
                 
+                String beforeId = messageList.get(messageList.size() - 1).path("id").asText();
                 raw = Request
-                        .Get("https://api.groupme.com/v3/groups/" + groupID + "/messages?limit=100&token=" + API_KEY)
+                        .Get("https://api.groupme.com/v3/groups/" + groupID + "/messages?limit=100&before_id=" + beforeId + "&token=" + API_KEY)
                         .execute()
                         .returnContent()
                         .asString();
