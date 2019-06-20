@@ -75,7 +75,7 @@
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
                               </CheckBox>
-                              <CheckBox fx:id="downloadMediaCheckBox" disable="true" mnemonicParsing="false" text="Download Media">
+                              <CheckBox fx:id="downloadMediaCheckBox" mnemonicParsing="false" selected="true" text="Download Media">
                                  <cursor>
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
