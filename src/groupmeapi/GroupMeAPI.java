@@ -263,10 +263,15 @@ public class GroupMeAPI {
      * @param progressBar progress bar object to be updated with progress
      */
     public static void downloadMedia(ObjectNode group, File mediaFolder, int totalCount, ProgressBar progressBar) {
-        // int totalCount = group.with("messages").path("count").asInt();
+        JsonNode[] messageList = mapper.convertValue(group.with("messages").withArray("message_list"), JsonNode[].class);
+        downloadMediaFromMessages(messageList, mediaFolder, totalCount, progressBar);
+    }
+    
+    
+    private static void downloadMediaFromMessages(JsonNode[] messageList, File mediaFolder, int totalCount, ProgressBar progressBar) {
         int seen = 0;
         
-        for (JsonNode message : group.with("messages").withArray("message_list")) {
+        for (JsonNode message : messageList) {
             ArrayNode attachments = ((ObjectNode) message).withArray("attachments");
             for (JsonNode attachment : attachments) {
                 String type = attachment.path("type").asText();
@@ -312,6 +317,12 @@ public class GroupMeAPI {
                 progressBar.setProgress((double) 1.0);
             }
         });
+    }
+    
+    
+    public static void downloadMediaMultithreaded(ObjectNode group, File mediaFolder, int totalCount, ProgressBar progressBar) {
+        JsonNode[] messageList = mapper.convertValue(group.with("messages").withArray("message_list"), JsonNode[].class);
+        downloadMediaFromMessages(messageList, mediaFolder, totalCount, progressBar);
     }
 
 }
