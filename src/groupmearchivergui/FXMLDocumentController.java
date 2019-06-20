@@ -231,7 +231,7 @@ public class FXMLDocumentController implements Initializable {
 
     /**
      *************************************************************************
-     * Step 3: Download the messages (if applicable)
+     * Step 3: Download the messages (if applicable) and media (if applicable)
      *************************************************************************
      */
     
@@ -264,15 +264,16 @@ public class FXMLDocumentController implements Initializable {
             return;
         }
         
+        // TODO: Separate into individual functions
         // Download the messages and save (in a separate thread so it doesn't block the UI)
         if (downloadMessagesCheckBox.isSelected()) {
             Thread downloadThread = new Thread() {
                 @Override
                 public void run() {
                     super.run();
-
-                    // See https://stackoverflow.com/a/32489845/1376127
-                    Platform.runLater(new Runnable() {
+                    
+                    // Download messages
+                    Platform.runLater(new Runnable() { // See https://stackoverflow.com/a/32489845/1376127
                         @Override
                         public void run() {
                             statusLabel.setText("Downloading " + totalCount + " messages...");
@@ -280,6 +281,7 @@ public class FXMLDocumentController implements Initializable {
                     });
                     GroupMeAPI.getMessages(group, groupID, API_KEY, mainProgressBar);
 
+                    // Export messages
                     // TODO: Add support for other message format exports
                     Platform.runLater(new Runnable() {
                         @Override
@@ -291,16 +293,51 @@ public class FXMLDocumentController implements Initializable {
                     File messageFile = messageFilePath.toFile();
                     GroupMeAPI.writeObjectNode(group, messageFile);
 
+                    /* 
+                    // TODO: Remove
                     Platform.runLater(new Runnable() {
                         @Override
                         public void run() {
                             statusLabel.setText("Done archiving messages from \"" + group.path("name").asText() + "\"");
                         }
                     });
+                    */
+                    
+                    if (!downloadMediaCheckBox.isSelected())
+                        return;
+                    
+                    // Count media files
+                    int mediaCount = GroupMeAPI.countMedia(group);
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            statusLabel.setText("Downloading " + mediaCount + " media items...");
+                        }
+                    });
+                    
+                    // Make the media folder if it doesn't already exist
+                    Path mediaFolderPath = Paths.get(groupFolderPath.toString(), "media");
+                    File mediaFolder = mediaFolderPath.toFile();
+                    if ((!mediaFolder.exists() || !mediaFolder.isDirectory()) && !mediaFolder.mkdirs()) {
+                        error("Failed to create folder " + mediaFolder.getAbsolutePath());
+                        return;
+                    }
+                    
+                    // Download media files
+                    GroupMeAPI.downloadMedia(group, mediaFolder, mainProgressBar);
+
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            statusLabel.setText("Done archiving messages and media from \"" + group.path("name").asText() + "\"");
+                        }
+                    });
                 }
             };
             downloadThread.setDaemon(true);
             downloadThread.start();
+        } else {
+            // TODO: Handle this case
         }
     }
     

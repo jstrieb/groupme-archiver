@@ -17,7 +17,16 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.LinkedHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.scene.control.ProgressBar;
 
@@ -145,7 +154,13 @@ public class GroupMeAPI {
             
             // Get remaining messages
             while (messageList.size() < totalCount) {
-                progressBar.setProgress((double) messageList.size() / totalCount);
+                // TODO: Do this the right way, whatever that is (respect main thread and whatnot)
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressBar.setProgress((double) messageList.size() / totalCount);
+                    }
+                });
                 
                 String beforeId = messageList.get(messageList.size() - 1).path("id").asText();
                 try {
@@ -173,7 +188,12 @@ public class GroupMeAPI {
                 messages = (ArrayNode) response.path("messages");
                 messageList.addAll(messages);
             }
-            progressBar.setProgress((double) 1.0);
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    progressBar.setProgress((double) 1.0);
+                }
+            });
         } catch (Exception ex) {
             Platform.runLater(new Runnable() {
                 @Override
@@ -207,6 +227,83 @@ public class GroupMeAPI {
             });
             ex.printStackTrace();
         }
+    }
+    
+    
+    /**
+     * Count the number of messages with downloadable media attachments
+     * 
+     * TODO: Make this more efficient by enabling counting while messages are downloaded
+     * 
+     * @param group JSON object with messages with media attachments to count
+     * @return the number of messages with downloadable attachments
+     */
+    public static int countMedia(ObjectNode group) {
+        int result = 0;
+        
+        for (JsonNode message : group.with("messages").withArray("message_list")) {
+            ArrayNode attachments = ((ObjectNode) message).withArray("attachments");
+            for (JsonNode attachment : attachments) {
+                String type = attachment.path("type").asText();
+                if (type.equals("image") || type.equals("linked_image") || type.equals("video")) {
+                    result++;
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    
+    public static void downloadMedia(ObjectNode group, File mediaFolder, ProgressBar progressBar) {
+        int totalCount = group.with("messages").path("count").asInt();
+        int seen = 0;
+        
+        for (JsonNode message : group.with("messages").withArray("message_list")) {
+            ArrayNode attachments = ((ObjectNode) message).withArray("attachments");
+            for (JsonNode attachment : attachments) {
+                String type = attachment.path("type").asText();
+                if (type.equals("image") || type.equals("linked_image") || type.equals("video")) {
+                    final double progress = (double) seen / totalCount;
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            progressBar.setProgress(progress);
+                        }
+                    });
+                    
+                    // Get filename
+                    String url = attachment.path("url").asText();
+                    String fileName = url.split("/")[url.split("/").length - 1];
+                    fileName = message.path("created_at").asText() + "." + fileName;
+                    // Add the correct file extension (remove the 'e' from 'jpeg' if applicable)
+                    for (String s : new String[]{"gif", "jpeg", "png"}) {
+                        fileName = (fileName.contains(s) ? fileName + "." + s.replace("e", "") : fileName);
+                    }
+                    
+                    // Download
+                    try {
+                        InputStream in = new URL(url).openStream();
+                        Files.copy(in, Paths.get(mediaFolder.getAbsolutePath(), fileName));
+                    } catch (FileAlreadyExistsException ex) {
+                        // Pass
+                    } catch (MalformedURLException ex) {
+                        Logger.getLogger(GroupMeAPI.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (IOException ex) {
+                        Logger.getLogger(GroupMeAPI.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (Exception ex) {
+                        // Pass
+                    }
+                }
+            }
+            seen++;
+        }
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                progressBar.setProgress((double) 1.0);
+            }
+        });
     }
 
 }
