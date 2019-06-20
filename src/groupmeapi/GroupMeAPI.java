@@ -255,8 +255,15 @@ public class GroupMeAPI {
     }
     
     
-    public static void downloadMedia(ObjectNode group, File mediaFolder, ProgressBar progressBar) {
-        int totalCount = group.with("messages").path("count").asInt();
+    /**
+     * Download all possible media files
+     * 
+     * @param group object with list of messages with attachments to download
+     * @param mediaFolder folder in which to save downloaded media
+     * @param progressBar progress bar object to be updated with progress
+     */
+    public static void downloadMedia(ObjectNode group, File mediaFolder, int totalCount, ProgressBar progressBar) {
+        // int totalCount = group.with("messages").path("count").asInt();
         int seen = 0;
         
         for (JsonNode message : group.with("messages").withArray("message_list")) {
@@ -264,7 +271,7 @@ public class GroupMeAPI {
             for (JsonNode attachment : attachments) {
                 String type = attachment.path("type").asText();
                 if (type.equals("image") || type.equals("linked_image") || type.equals("video")) {
-                    final double progress = (double) seen / totalCount;
+                    double progress = (double) seen / totalCount;
                     Platform.runLater(new Runnable() {
                         @Override
                         public void run() {
@@ -294,9 +301,10 @@ public class GroupMeAPI {
                     } catch (Exception ex) {
                         // Pass
                     }
+                    
+                    seen++;
                 }
             }
-            seen++;
         }
         Platform.runLater(new Runnable() {
             @Override
