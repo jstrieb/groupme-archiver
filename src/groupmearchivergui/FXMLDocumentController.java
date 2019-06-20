@@ -326,7 +326,11 @@ public class FXMLDocumentController implements Initializable {
                     }
                     
                     // Download media files
-                    GroupMeAPI.downloadMedia(group, mediaFolder, mediaCount, mainProgressBar);
+                    if (useMultithreadingCheckBox.isSelected()) {
+                        GroupMeAPI.downloadMediaMultithreaded(group, mediaFolder, mediaCount, mainProgressBar);
+                    } else {
+                        GroupMeAPI.downloadMedia(group, mediaFolder, mediaCount, mainProgressBar);
+                    }
 
                     Platform.runLater(new Runnable() {
                         @Override

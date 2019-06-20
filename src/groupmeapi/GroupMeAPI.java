@@ -24,6 +24,7 @@ import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -272,6 +273,8 @@ public class GroupMeAPI {
         int seen = 0;
         
         for (JsonNode message : messageList) {
+            if (message == null)
+                continue;
             ArrayNode attachments = ((ObjectNode) message).withArray("attachments");
             for (JsonNode attachment : attachments) {
                 String type = attachment.path("type").asText();
@@ -322,7 +325,26 @@ public class GroupMeAPI {
     
     public static void downloadMediaMultithreaded(ObjectNode group, File mediaFolder, int totalCount, ProgressBar progressBar) {
         JsonNode[] messageList = mapper.convertValue(group.with("messages").withArray("message_list"), JsonNode[].class);
-        downloadMediaFromMessages(messageList, mediaFolder, totalCount, progressBar);
+        
+        final int NUM_THREADS = 4;
+        final int CHUNK_SIZE = messageList.length / NUM_THREADS;
+        Thread[] threads = new Thread[NUM_THREADS];
+        
+        for (int i=0; i < NUM_THREADS; i++) {
+            JsonNode[] chunk = Arrays.copyOfRange(messageList, i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+            
+            threads[i] = new Thread() {
+                @Override
+                public void run() {
+                    super.run();
+                    
+                    downloadMediaFromMessages(chunk, mediaFolder, totalCount / NUM_THREADS, progressBar);
+                }
+            };
+            
+            threads[i].start();
+        }
+        
     }
 
 }
