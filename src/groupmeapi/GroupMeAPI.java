@@ -17,8 +17,10 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.File;
+import java.io.IOException;
 import java.util.LinkedHashMap;
-import javafx.scene.control.Label;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.scene.control.ProgressBar;
 
 import org.apache.http.client.HttpResponseException;
@@ -110,7 +112,7 @@ public class GroupMeAPI {
      * @param group
      * @return 
      */
-    public static void getMessages(ObjectNode group, String groupID, String API_KEY, File outfile, ProgressBar progressBar) {
+    public static void getMessages(ObjectNode group, String groupID, String API_KEY, ProgressBar progressBar) {
         String raw;
         try {
             // Get first 100 messages
@@ -143,13 +145,21 @@ public class GroupMeAPI {
                 messageList.addAll(messages);
             }
             progressBar.setProgress((double) 1.0);
-            
-            // Write the files
-            ObjectWriter writer = mapper.writer(new DefaultPrettyPrinter());
-            writer.writeValue(outfile, group);
         } catch (Exception ex) {
             error("An unexpected error occurred while getting data from GroupMe. "
                 + "Possibly, the response was malformed");
+            ex.printStackTrace();
+        }
+    }
+    
+    
+    public static void writeObjectNode(ObjectNode node, File outfile) {
+        // Write the files
+        ObjectWriter writer = mapper.writer(new DefaultPrettyPrinter());
+        try {
+            writer.writeValue(outfile, node);
+        } catch (Exception ex) {
+            error("An unexpected error occurred while saving the file.");
             ex.printStackTrace();
         }
     }

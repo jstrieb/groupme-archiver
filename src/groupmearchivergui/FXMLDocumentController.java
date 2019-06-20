@@ -7,7 +7,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import groupmeapi.GroupMeAPI;
 import static groupmearchivergui.GroupMeArchiverGUI.changeWindowTitle;
 import static groupmearchivergui.GroupMeArchiverGUI.error;
+import java.awt.Desktop;
 import java.io.File;
+import java.io.IOException;
 
 import java.net.URL;
 import java.nio.file.Path;
@@ -15,8 +17,11 @@ import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
+import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -197,6 +202,15 @@ public class FXMLDocumentController implements Initializable {
     }
     
     
+    @FXML
+    private void handleOpenFolderInNewWindowAction(ActionEvent event) {
+        try {
+            Desktop.getDesktop().open(new File(saveToFolderTextField.getText()));
+        } catch (IOException ex) {
+        }
+    }
+    
+    
 
     /**
      *************************************************************************
@@ -232,9 +246,25 @@ public class FXMLDocumentController implements Initializable {
             public void run() {
                 super.run();
                 
+                GroupMeAPI.getMessages(group, groupID, API_KEY, mainProgressBar);
+                
+                // See https://stackoverflow.com/a/32489845/1376127
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        statusLabel.setText("Saving downloaded messages to file...");
+                    }
+                });
                 Path messageFilePath = Paths.get(groupFolderPath.toString(), "messages.json");
                 File messageFile = messageFilePath.toFile();
-                GroupMeAPI.getMessages(group, groupID, API_KEY, messageFile, mainProgressBar);
+                GroupMeAPI.writeObjectNode(group, messageFile);
+                
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        statusLabel.setText("Done archiving messages from \"" + group.path("name").asText() + "\"");
+                    }
+                });
             }
         };
         downloadThread.setDaemon(true);
