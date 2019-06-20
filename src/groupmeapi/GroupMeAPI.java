@@ -17,10 +17,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.File;
-import java.io.IOException;
 import java.util.LinkedHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import javafx.application.Platform;
 import javafx.scene.control.ProgressBar;
 
 import org.apache.http.client.HttpResponseException;
@@ -65,11 +63,21 @@ public class GroupMeAPI {
                 result.put(group.path("name").asText(), group.path("group_id").asText());
             }
         } catch (HttpResponseException ex) {
-            error("Error getting data -- probably an invalid API key");
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    error("Error getting data -- probably an invalid API key");
+                }
+            });
             return null;
         } catch (Exception ex) {
-            error("An unexpected error occurred while getting data from GroupMe. "
-                + "Possibly, the response was malformed");
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    error("An unexpected error occurred while getting data from GroupMe. "
+                        + "Possibly, the response was malformed");
+                }
+            });
             ex.printStackTrace();
             return null;
         }
@@ -98,8 +106,13 @@ public class GroupMeAPI {
             
             return response;
         } catch (Exception ex) {
-            error("An unexpected error occurred while getting data from GroupMe. "
-                + "Possibly, the response was malformed");
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    error("An unexpected error occurred while getting data from GroupMe. "
+                        + "Possibly, the response was malformed");
+                }
+            });
             ex.printStackTrace();
             return null;
         }
@@ -135,11 +148,26 @@ public class GroupMeAPI {
                 progressBar.setProgress((double) messageList.size() / totalCount);
                 
                 String beforeId = messageList.get(messageList.size() - 1).path("id").asText();
-                raw = Request
-                        .Get("https://api.groupme.com/v3/groups/" + groupID + "/messages?limit=100&before_id=" + beforeId + "&token=" + API_KEY)
-                        .execute()
-                        .returnContent()
-                        .asString();
+                try {
+                    raw = Request
+                            .Get("https://api.groupme.com/v3/groups/" + groupID + "/messages?limit=100&before_id=" + beforeId + "&token=" + API_KEY)
+                            .execute()
+                            .returnContent()
+                            .asString();
+                } catch (HttpResponseException ex) {
+                    int status = ex.getStatusCode();
+                    if (!(300 <= status && status < 400)) {
+                        Platform.runLater(new Runnable() {
+                            @Override
+                            public void run() {
+                                error("An unexpected error occurred while getting data from GroupMe. "
+                                    + "Possibly, the response was malformed");
+                            }
+                        });
+                        ex.printStackTrace();
+                        return;
+                    }
+                }
 
                 response = (ObjectNode) mapper.readTree(raw).path("response");
                 messages = (ArrayNode) response.path("messages");
@@ -147,20 +175,36 @@ public class GroupMeAPI {
             }
             progressBar.setProgress((double) 1.0);
         } catch (Exception ex) {
-            error("An unexpected error occurred while getting data from GroupMe. "
-                + "Possibly, the response was malformed");
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    error("An unexpected error occurred while getting data from GroupMe. "
+                        + "Possibly, the response was malformed");
+                }
+            });
             ex.printStackTrace();
         }
     }
     
     
+    /**
+     * Write an object node out to a file as JSON
+     * 
+     * @param node node whose data will be written
+     * @param outfile file to write to
+     */
     public static void writeObjectNode(ObjectNode node, File outfile) {
         // Write the files
         ObjectWriter writer = mapper.writer(new DefaultPrettyPrinter());
         try {
             writer.writeValue(outfile, node);
         } catch (Exception ex) {
-            error("An unexpected error occurred while saving the file.");
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    error("An unexpected error occurred while saving the file.");
+                }
+            });
             ex.printStackTrace();
         }
     }
