@@ -127,6 +127,7 @@
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
                               </Button>
+                              <Button mnemonicParsing="false" onAction="#handleOpenFolderInNewWindowAction" text="Open in new window" />
                            </children>
                         </HBox>
                         <HBox alignment="CENTER_LEFT" prefHeight="0.0" prefWidth="634.0">
