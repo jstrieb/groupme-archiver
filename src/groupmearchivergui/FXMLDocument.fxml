@@ -20,7 +20,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox fx:id="root" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="500.0" prefWidth="850.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="groupmearchivergui.FXMLDocumentController">
+<VBox fx:id="root" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="400.0" minWidth="600.0" prefHeight="500.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="groupmearchivergui.FXMLDocumentController">
    <children>
       <MenuBar>
         <menus>
@@ -38,7 +38,7 @@
           </Menu>
         </menus>
       </MenuBar>
-      <SplitPane dividerPositions="0.25" prefHeight="160.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
+      <SplitPane dividerPositions="0.25" prefHeight="160.0" prefWidth="150.0" VBox.vgrow="ALWAYS">
         <items>
             <ListView fx:id="groupListView" disable="true" minWidth="100.0" prefHeight="372.0" prefWidth="150.0" />
             <VBox prefHeight="374.0" prefWidth="530.0">
@@ -70,12 +70,12 @@
                      <children>
                         <FlowPane alignment="CENTER" columnHalignment="CENTER" hgap="20.0" prefHeight="80.0" prefWidth="441.0" vgap="20.0">
                            <children>
-                              <CheckBox mnemonicParsing="false" selected="true" text="Download Messages">
+                              <CheckBox fx:id="downloadMessagesCheckBox" mnemonicParsing="false" onAction="#handleDownloadMessagesAction" selected="true" text="Download Messages">
                                  <cursor>
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
                               </CheckBox>
-                              <CheckBox disable="true" mnemonicParsing="false" text="Download Media">
+                              <CheckBox fx:id="downloadMediaCheckBox" disable="true" mnemonicParsing="false" text="Download Media">
                                  <cursor>
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
@@ -85,7 +85,7 @@
                               <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
                            </padding>
                         </FlowPane>
-                        <FlowPane alignment="CENTER" columnHalignment="CENTER" hgap="20.0" prefHeight="80.0" prefWidth="441.0" vgap="20.0">
+                        <FlowPane fx:id="messageFormatTogglePane" alignment="CENTER" columnHalignment="CENTER" hgap="20.0" prefHeight="80.0" prefWidth="441.0" vgap="20.0">
                            <padding>
                               <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
                            </padding>

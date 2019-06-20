@@ -17,8 +17,6 @@ import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import javafx.application.Platform;
@@ -35,6 +33,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 
@@ -154,6 +153,8 @@ public class FXMLDocumentController implements Initializable {
     private VBox root;
     @FXML
     private Label statusLabel;
+    @FXML
+    private FlowPane messageFormatTogglePane;
     
     /**
      * Update the window title, enable the additional options to download,
@@ -171,6 +172,7 @@ public class FXMLDocumentController implements Initializable {
         beginArchivingButton.setDefaultButton(true);
         useKeyButton.setDefaultButton(false);
         statusLabel.setText("Archive group \"" + groupName + "\"");
+        mainProgressBar.setProgress((double) 0.0);
     }
     
     
@@ -183,6 +185,16 @@ public class FXMLDocumentController implements Initializable {
         changeWindowTitle("");
         optionsPanel.setDisable(true);
         statusLabel.setText("");
+    }
+    
+    
+    /**
+     * Handle a user checking or unchecking the ``download messages'' checkbox
+     * @param event 
+     */
+    @FXML
+    private void handleDownloadMessagesAction(ActionEvent event) {
+        messageFormatTogglePane.setDisable(!downloadMessagesCheckBox.isSelected());
     }
     
     
@@ -202,6 +214,11 @@ public class FXMLDocumentController implements Initializable {
     }
     
     
+    /**
+     * Open the current folder in a new native OS (explorer) window
+     * 
+     * @param event unused
+     */
     @FXML
     private void handleOpenFolderInNewWindowAction(ActionEvent event) {
         try {
@@ -220,6 +237,10 @@ public class FXMLDocumentController implements Initializable {
     
     @FXML
     private ProgressBar mainProgressBar;
+    @FXML
+    private CheckBox downloadMessagesCheckBox;
+    @FXML
+    private CheckBox downloadMediaCheckBox;
     
     /**
      * Begin the action of archiving -- handle calls to archive messages and media
@@ -228,6 +249,9 @@ public class FXMLDocumentController implements Initializable {
      */
     @FXML
     private void handleBeginArchivingAction(ActionEvent event) {
+        if (!downloadMediaCheckBox.isSelected() && !downloadMessagesCheckBox.isSelected())
+            return;
+        
         preferences.put("CWD", saveToFolderTextField.getText());
         ObjectNode group = GroupMeAPI.getGroupInfo(API_KEY, groupID);
         int totalCount = group.path("messages").path("count").asInt();
@@ -241,47 +265,44 @@ public class FXMLDocumentController implements Initializable {
         }
         
         // Download the messages and save (in a separate thread so it doesn't block the UI)
-        Thread downloadThread = new Thread() {
-            @Override
-            public void run() {
-                super.run();
-                
-                GroupMeAPI.getMessages(group, groupID, API_KEY, mainProgressBar);
-                
-                // See https://stackoverflow.com/a/32489845/1376127
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        statusLabel.setText("Saving downloaded messages to file...");
-                    }
-                });
-                Path messageFilePath = Paths.get(groupFolderPath.toString(), "messages.json");
-                File messageFile = messageFilePath.toFile();
-                GroupMeAPI.writeObjectNode(group, messageFile);
-                
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        statusLabel.setText("Done archiving messages from \"" + group.path("name").asText() + "\"");
-                    }
-                });
-            }
-        };
-        downloadThread.setDaemon(true);
-        downloadThread.start();
-        
-        statusLabel.setText("Downloading " + totalCount + " messages...");
-    }
-    
-    
+        if (downloadMessagesCheckBox.isSelected()) {
+            Thread downloadThread = new Thread() {
+                @Override
+                public void run() {
+                    super.run();
 
-    /**
-     *************************************************************************
-     * Step 4: Download the media (if applicable)
-     *************************************************************************
-     */
-    
-    // TODO: Implement
+                    // See https://stackoverflow.com/a/32489845/1376127
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            statusLabel.setText("Downloading " + totalCount + " messages...");
+                        }
+                    });
+                    GroupMeAPI.getMessages(group, groupID, API_KEY, mainProgressBar);
+
+                    // TODO: Add support for other message format exports
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            statusLabel.setText("Saving downloaded messages to JSON file...");
+                        }
+                    });
+                    Path messageFilePath = Paths.get(groupFolderPath.toString(), "messages.json");
+                    File messageFile = messageFilePath.toFile();
+                    GroupMeAPI.writeObjectNode(group, messageFile);
+
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            statusLabel.setText("Done archiving messages from \"" + group.path("name").asText() + "\"");
+                        }
+                    });
+                }
+            };
+            downloadThread.setDaemon(true);
+            downloadThread.start();
+        }
+    }
     
     
 
