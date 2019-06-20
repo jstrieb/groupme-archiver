@@ -324,12 +324,13 @@ public class FXMLDocumentController implements Initializable {
                     }
                     
                     // Download media files
-                    GroupMeAPI.downloadMedia(group, mediaFolder, mainProgressBar);
+                    GroupMeAPI.downloadMedia(group, mediaFolder, mediaCount, mainProgressBar);
 
                     Platform.runLater(new Runnable() {
                         @Override
                         public void run() {
                             statusLabel.setText("Done archiving messages and media from \"" + group.path("name").asText() + "\"");
+                            beginArchivingButton.setDisable(false);
                         }
                     });
                 }
@@ -339,6 +340,8 @@ public class FXMLDocumentController implements Initializable {
         } else {
             // TODO: Handle this case
         }
+        
+        beginArchivingButton.setDisable(true);
     }
     
     
