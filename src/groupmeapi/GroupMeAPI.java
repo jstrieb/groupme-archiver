@@ -31,8 +31,6 @@ import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.scene.control.ProgressBar;
 
-import org.apache.http.client.HttpResponseException;
-import org.apache.http.client.fluent.Request;
 
 
 public class GroupMeAPI {
@@ -57,29 +55,17 @@ public class GroupMeAPI {
      */
     public static LinkedHashMap<String, String> getGroups(String API_KEY) {
         // Get the group list from GroupMe
-        String raw;
         LinkedHashMap<String, String> result = new LinkedHashMap<>();
         try {
-            raw = Request
-                    .Get("https://api.groupme.com/v3/groups?omit=memberships&per_page=499&token=" + API_KEY)
-                    .execute()
-                    .returnContent()
-                    .asString();
+            String url = "https://api.groupme.com/v3/groups?omit=memberships&per_page=499&token=" + API_KEY;
+            InputStream inStream = new URL(url).openStream();
         
             initObjectMapper();
-            JsonNode groupList = mapper.readTree(raw).path("response");
+            JsonNode groupList = mapper.readTree(inStream).path("response");
             
             for (JsonNode group : groupList) {
                 result.put(group.path("name").asText(), group.path("group_id").asText());
             }
-        } catch (HttpResponseException ex) {
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
-                    error("Error getting data -- probably an invalid API key");
-                }
-            });
-            return null;
         } catch (Exception ex) {
             Platform.runLater(new Runnable() {
                 @Override
@@ -104,16 +90,12 @@ public class GroupMeAPI {
      * @return Parsed JSON object with group information
      */
     public static ObjectNode getGroupInfo(String API_KEY, String groupID) {
-        String raw;
         try {
-            raw = Request
-                    .Get("https://api.groupme.com/v3/groups/" + groupID + "?token=" + API_KEY)
-                    .execute()
-                    .returnContent()
-                    .asString();
+            String url = "https://api.groupme.com/v3/groups/" + groupID + "?token=" + API_KEY;
+            InputStream inStream = new URL(url).openStream();
             
             initObjectMapper();
-            ObjectNode response = (ObjectNode) mapper.readTree(raw).path("response");
+            ObjectNode response = (ObjectNode) mapper.readTree(inStream).path("response");
             
             return response;
         } catch (Exception ex) {
@@ -141,14 +123,11 @@ public class GroupMeAPI {
         String raw;
         try {
             // Get first 100 messages
-            raw = Request
-                    .Get("https://api.groupme.com/v3/groups/" + groupID + "/messages?limit=100&token=" + API_KEY)
-                    .execute()
-                    .returnContent()
-                    .asString();
+            String url = "https://api.groupme.com/v3/groups/" + groupID + "/messages?limit=100&token=" + API_KEY;
+            InputStream inStream = new URL(url).openStream();
             
             initObjectMapper();
-            ObjectNode response = (ObjectNode) mapper.readTree(raw).path("response");
+            ObjectNode response = (ObjectNode) mapper.readTree(inStream).path("response");
             ArrayNode messages = (ArrayNode) response.path("messages");
             int totalCount = response.path("count").asInt();
             
@@ -166,28 +145,10 @@ public class GroupMeAPI {
                 });
                 
                 String beforeId = messageList.get(messageList.size() - 1).path("id").asText();
-                try {
-                    raw = Request
-                            .Get("https://api.groupme.com/v3/groups/" + groupID + "/messages?limit=100&before_id=" + beforeId + "&token=" + API_KEY)
-                            .execute()
-                            .returnContent()
-                            .asString();
-                } catch (HttpResponseException ex) {
-                    int status = ex.getStatusCode();
-                    if (!(300 <= status && status < 400)) {
-                        Platform.runLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                error("An unexpected error occurred while getting data from GroupMe. "
-                                    + "Possibly, the response was malformed");
-                            }
-                        });
-                        ex.printStackTrace();
-                        return;
-                    }
-                }
-
-                response = (ObjectNode) mapper.readTree(raw).path("response");
+                url = "https://api.groupme.com/v3/groups/" + groupID + "/messages?limit=100&before_id=" + beforeId + "&token=" + API_KEY;
+                inStream = new URL(url).openStream();
+                
+                response = (ObjectNode) mapper.readTree(inStream).path("response");
                 messages = (ArrayNode) response.path("messages");
                 messageList.addAll(messages);
             }
