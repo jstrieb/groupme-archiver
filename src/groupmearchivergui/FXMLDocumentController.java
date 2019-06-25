@@ -31,6 +31,8 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.FlowPane;
@@ -243,6 +245,21 @@ public class FXMLDocumentController implements Initializable {
     private CheckBox downloadMediaCheckBox;
     @FXML
     private CheckBox useMultithreadingCheckBox;
+    @FXML
+    private Spinner numThreadSpinner;
+    
+    
+    /**
+     * Enable or disable the thread count spinner depending on whether or not
+     * the box to use multithreading is ticked
+     * 
+     * @param event unused
+     */
+    @FXML
+    private void handleMultithreadingCheckboxAction(ActionEvent event) {
+        numThreadSpinner.setDisable(!useMultithreadingCheckBox.isSelected());
+    }
+    
     
     /**
      * Begin the action of archiving -- handle calls to archive messages and media
@@ -294,16 +311,6 @@ public class FXMLDocumentController implements Initializable {
                     Path messageFilePath = Paths.get(groupFolderPath.toString(), "messages.json");
                     File messageFile = messageFilePath.toFile();
                     GroupMeAPI.writeObjectNode(group, messageFile);
-
-                    /* 
-                    // TODO: Remove
-                    Platform.runLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            statusLabel.setText("Done archiving messages from \"" + group.path("name").asText() + "\"");
-                        }
-                    });
-                    */
                     
                     if (!downloadMediaCheckBox.isSelected())
                         return;
@@ -327,18 +334,22 @@ public class FXMLDocumentController implements Initializable {
                     
                     // Download media files
                     if (useMultithreadingCheckBox.isSelected()) {
-                        GroupMeAPI.downloadMediaMultithreaded(group, mediaFolder, mediaCount, mainProgressBar);
+                        int numThreads = (int) numThreadSpinner.getValue();
+                        GroupMeAPI.downloadMediaMultithreaded(group, mediaFolder, numThreads, mainProgressBar, new Runnable() {
+                            @Override
+                            public void run() {
+                                Platform.runLater(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        statusLabel.setText("Done archiving messages and media from \"" + group.path("name").asText() + "\"");
+                                        beginArchivingButton.setDisable(false);
+                                    }
+                                });
+                            }
+                        });
                     } else {
                         GroupMeAPI.downloadMedia(group, mediaFolder, mediaCount, mainProgressBar);
                     }
-
-                    Platform.runLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            statusLabel.setText("Done archiving messages and media from \"" + group.path("name").asText() + "\"");
-                            beginArchivingButton.setDisable(false);
-                        }
-                    });
                 }
             };
             downloadThread.setDaemon(true);
@@ -438,6 +449,8 @@ public class FXMLDocumentController implements Initializable {
             currentWorkingDirectory = System.getProperty("user.home");
         }
         saveToFolderTextField.setText(currentWorkingDirectory);
+        
+        numThreadSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(2, 16, 4, 1));
     }
 
 }

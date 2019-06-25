@@ -13,6 +13,7 @@
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.ToggleGroup?>
@@ -45,13 +46,19 @@
                <children>
                   <HBox alignment="CENTER" prefHeight="40.0" prefWidth="441.0" spacing="10.0">
                      <children>
-                        <Label text="API Key">
+                        <Label text="API Key:">
                            <HBox.margin>
                               <Insets />
                            </HBox.margin>
                         </Label>
-                        <PasswordField fx:id="apiKeyTextField" prefHeight="26.0" prefWidth="282.0" HBox.hgrow="ALWAYS" />
-                        <CheckBox fx:id="rememberApiKeyCheckBox" mnemonicParsing="false" onAction="#handleRememberApiKeyCheckBoxSelected" text="Remember Key" />
+                        <PasswordField fx:id="apiKeyTextField" prefHeight="26.0" prefWidth="282.0" HBox.hgrow="ALWAYS">
+                           <cursor>
+                              <Cursor fx:constant="TEXT" />
+                           </cursor></PasswordField>
+                        <CheckBox fx:id="rememberApiKeyCheckBox" mnemonicParsing="false" onAction="#handleRememberApiKeyCheckBoxSelected" text="Remember Key">
+                           <cursor>
+                              <Cursor fx:constant="HAND" />
+                           </cursor></CheckBox>
                         <Button fx:id="useKeyButton" alignment="CENTER" defaultButton="true" mnemonicParsing="false" onAction="#handleApiKeyButtonAction" text="Use Key">
                            <HBox.margin>
                               <Insets />
@@ -127,7 +134,10 @@
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
                               </Button>
-                              <Button mnemonicParsing="false" onAction="#handleOpenFolderInNewWindowAction" text="Open in new window" />
+                              <Button mnemonicParsing="false" onAction="#handleOpenFolderInNewWindowAction" text="Open in new window">
+                                 <cursor>
+                                    <Cursor fx:constant="HAND" />
+                                 </cursor></Button>
                            </children>
                         </HBox>
                         <HBox alignment="CENTER_LEFT" prefHeight="0.0" prefWidth="634.0">
@@ -152,7 +162,20 @@
                         </HBox>
                         <HBox alignment="CENTER_RIGHT" prefHeight="50.0" prefWidth="441.0" spacing="20.0" VBox.vgrow="ALWAYS">
                            <children>
-                              <CheckBox fx:id="useMultithreadingCheckBox" mnemonicParsing="false" selected="true" text="Use Multithreading" />
+                              <Label text="Number of threads:">
+                                 <HBox.margin>
+                                    <Insets right="-5.0" />
+                                 </HBox.margin>
+                              </Label>
+                              <Spinner fx:id="numThreadSpinner" editable="true" prefHeight="26.0" prefWidth="70.0">
+                                 <HBox.margin>
+                                    <Insets left="-5.0" />
+                                 </HBox.margin>
+                              </Spinner>
+                              <CheckBox fx:id="useMultithreadingCheckBox" mnemonicParsing="false" onAction="#handleMultithreadingCheckboxAction" selected="true" text="Use Multithreading">
+                                 <cursor>
+                                    <Cursor fx:constant="HAND" />
+                                 </cursor></CheckBox>
                               <Button fx:id="beginArchivingButton" alignment="CENTER" mnemonicParsing="false" onAction="#handleBeginArchivingAction" text="Begin Archiving">
                                  <HBox.margin>
                                     <Insets />
