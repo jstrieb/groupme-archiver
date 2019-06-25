@@ -24,8 +24,8 @@ import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
@@ -98,6 +98,7 @@ public class GroupMeAPI {
     
     /**
      * Get a parsed JSON object with the group information to add to and export
+     * 
      * @param API_KEY GroupMe API token
      * @param groupID ID of the group whose info will be retrieved
      * @return Parsed JSON object with group information
@@ -132,6 +133,7 @@ public class GroupMeAPI {
     /**
      * Download all of the messages associated with the group and add them to a
      * list of messages in the groupInfo node
+     * 
      * @param group
      * @return 
      */
@@ -240,19 +242,19 @@ public class GroupMeAPI {
      * @return the number of messages with downloadable attachments
      */
     public static int countMedia(ObjectNode group) {
-        int result = 0;
+        ArrayNode mediaList = group.withArray("media_list");
         
         for (JsonNode message : group.with("messages").withArray("message_list")) {
             ArrayNode attachments = ((ObjectNode) message).withArray("attachments");
             for (JsonNode attachment : attachments) {
                 String type = attachment.path("type").asText();
                 if (type.equals("image") || type.equals("linked_image") || type.equals("video")) {
-                    result++;
+                    mediaList.add(message);
                 }
             }
         }
         
-        return result;
+        return mediaList.size();
     }
     
     
@@ -269,6 +271,14 @@ public class GroupMeAPI {
     }
     
     
+    /**
+     * TODO
+     * 
+     * @param messageList
+     * @param mediaFolder
+     * @param totalCount
+     * @param progressBar 
+     */
     private static void downloadMediaFromMessages(JsonNode[] messageList, File mediaFolder, int totalCount, ProgressBar progressBar) {
         int seen = 0;
         
@@ -323,22 +333,117 @@ public class GroupMeAPI {
     }
     
     
-    public static void downloadMediaMultithreaded(ObjectNode group, File mediaFolder, int totalCount, ProgressBar progressBar) {
-        JsonNode[] messageList = mapper.convertValue(group.with("messages").withArray("message_list"), JsonNode[].class);
+    /**
+     * Download the media from a single message (i.e. consume from producer)
+     * 
+     * @param message the message whose attachments to download
+     * @param mediaFolder the folder into which to save the downloaded attachments
+     */
+    private static void downloadMediaSingle(JsonNode message, File mediaFolder) {
+        if (message == null)
+            return;
+        ArrayNode attachments = ((ObjectNode) message).withArray("attachments");
+        for (JsonNode attachment : attachments) {
+            String type = attachment.path("type").asText();
+            if (type.equals("image") || type.equals("linked_image") || type.equals("video")) {
+                // Get filename
+                String url = attachment.path("url").asText();
+                String fileName = url.split("/")[url.split("/").length - 1];
+                fileName = message.path("created_at").asText() + "." + fileName;
+                // Add the correct file extension (remove the 'e' from 'jpeg' if applicable)
+                for (String s : new String[]{"gif", "jpeg", "png"}) {
+                    fileName = (fileName.contains(s) ? fileName + "." + s.replace("e", "") : fileName);
+                }
+
+                // Download
+                try {
+                    InputStream in = new URL(url).openStream();
+                    Files.copy(in, Paths.get(mediaFolder.getAbsolutePath(), fileName));
+                } catch (FileAlreadyExistsException ex) {
+                    // Pass
+                } catch (MalformedURLException ex) {
+                    Logger.getLogger(GroupMeAPI.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (IOException ex) {
+                    Logger.getLogger(GroupMeAPI.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (Exception ex) {
+                    // Pass
+                }
+            }
+        }
+    }
+    
+    
+    /**
+     * Produce messages for threads to download and consume
+     */
+    private static class MessageProducer {
+        int index;
+        JsonNode[] messageList;
+        ReentrantLock lock;
+        ProgressBar progressBar;
+        Runnable onCompletion;
         
-        final int NUM_THREADS = 4;
-        final int CHUNK_SIZE = messageList.length / NUM_THREADS;
-        Thread[] threads = new Thread[NUM_THREADS];
+        public MessageProducer(JsonNode[] messageList, ProgressBar progressBar, Runnable onCompletion) {
+            this.index = 0;
+            this.messageList = messageList;
+            this.lock = new ReentrantLock();
+            this.progressBar = progressBar;
+            this.onCompletion = onCompletion;
+        }
         
-        for (int i=0; i < NUM_THREADS; i++) {
-            JsonNode[] chunk = Arrays.copyOfRange(messageList, i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+        public JsonNode produce() {
+            JsonNode result = null;
             
+            this.lock.lock();
+            
+            try {
+                if (this.index < this.messageList.length) {
+                    result = this.messageList[this.index++];
+                } else {
+                    this.onCompletion.run();
+                }
+
+                double progress = (double) this.index / this.messageList.length;
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressBar.setProgress(progress);
+                    }
+                });
+            } finally {
+                this.lock.unlock();
+            }
+            
+            return result;
+        }
+    }
+    
+    
+    /**
+     * TODO 
+     * 
+     * @param group
+     * @param mediaFolder
+     * @param numThreads
+     * @param progressBar 
+     */
+    public static void downloadMediaMultithreaded(ObjectNode group, File mediaFolder, int numThreads, ProgressBar progressBar, Runnable onCompletion) {
+        JsonNode[] messageList = mapper.convertValue(group.withArray("media_list"), JsonNode[].class);
+        MessageProducer producer = new MessageProducer(messageList, progressBar, onCompletion);
+        
+        Thread[] threads = new Thread[numThreads];
+        
+        for (int i=0; i < numThreads; i++) {
             threads[i] = new Thread() {
                 @Override
                 public void run() {
                     super.run();
                     
-                    downloadMediaFromMessages(chunk, mediaFolder, totalCount / NUM_THREADS, progressBar);
+                    JsonNode message = producer.produce();
+                    while (message != null) {
+                        downloadMediaSingle(message, mediaFolder);
+                        message = producer.produce();
+                    }
                 }
             };
             
