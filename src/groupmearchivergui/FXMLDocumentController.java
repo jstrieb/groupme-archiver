@@ -10,6 +10,7 @@ import static groupmearchivergui.GroupMeArchiverGUI.error;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 
 import java.net.URL;
 import java.nio.file.Path;
@@ -54,7 +55,7 @@ public class FXMLDocumentController implements Initializable {
      *************************************************************************
      */
     private String API_KEY = "";
-    private Preferences preferences = Preferences.userRoot().node(this.getClass().getName());
+    private final Preferences preferences = Preferences.userRoot().node(this.getClass().getName());
     private LinkedHashMap<String, String> groupList;
     private String groupID = "";
     
@@ -283,80 +284,61 @@ public class FXMLDocumentController implements Initializable {
             return;
         }
         
-        // TODO: Separate into individual functions
         // Download the messages and save (in a separate thread so it doesn't block the UI)
-        if (downloadMessagesCheckBox.isSelected()) {
-            Thread downloadThread = new Thread() {
-                @Override
-                public void run() {
-                    super.run();
-                    
-                    // Download messages
-                    Platform.runLater(new Runnable() { // See https://stackoverflow.com/a/32489845/1376127
-                        @Override
-                        public void run() {
-                            statusLabel.setText("Downloading " + totalCount + " messages...");
-                        }
-                    });
-                    GroupMeAPI.getMessages(group, groupID, API_KEY, mainProgressBar);
+        Thread downloadThread = new Thread() {
+            @Override
+            public void run() {
+                // Download messages
+                // See https://stackoverflow.com/a/32489845/1376127
+                Platform.runLater(() -> {
+                    statusLabel.setText("Getting " + totalCount + " messages...");
+                });
+                GroupMeAPI.getMessages(group, groupID, API_KEY, mainProgressBar);
 
-                    // Export messages
+                // Export messages
+                if (downloadMessagesCheckBox.isSelected()) {
                     // TODO: Add support for other message format exports
-                    Platform.runLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            statusLabel.setText("Saving downloaded messages to JSON file...");
-                        }
+                    Platform.runLater(() -> {
+                        statusLabel.setText("Saving downloaded messages to JSON file...");
                     });
                     Path messageFilePath = Paths.get(groupFolderPath.toString(), "messages.json");
                     File messageFile = messageFilePath.toFile();
                     GroupMeAPI.writeObjectNode(group, messageFile);
-                    
-                    if (!downloadMediaCheckBox.isSelected())
-                        return;
-                    
-                    // Count media files
-                    int mediaCount = GroupMeAPI.countMedia(group);
-                    Platform.runLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            statusLabel.setText("Downloading " + mediaCount + " media items...");
-                        }
-                    });
-                    
-                    // Make the media folder if it doesn't already exist
-                    Path mediaFolderPath = Paths.get(groupFolderPath.toString(), "media");
-                    File mediaFolder = mediaFolderPath.toFile();
-                    if ((!mediaFolder.exists() || !mediaFolder.isDirectory()) && !mediaFolder.mkdirs()) {
-                        error("Failed to create folder " + mediaFolder.getAbsolutePath());
-                        return;
-                    }
-                    
-                    // Download media files
-                    if (useMultithreadingCheckBox.isSelected()) {
-                        int numThreads = (int) numThreadSpinner.getValue();
-                        GroupMeAPI.downloadMediaMultithreaded(group, mediaFolder, numThreads, mainProgressBar, new Runnable() {
-                            @Override
-                            public void run() {
-                                Platform.runLater(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        statusLabel.setText("Done archiving messages and media from \"" + group.path("name").asText() + "\"");
-                                        beginArchivingButton.setDisable(false);
-                                    }
-                                });
-                            }
-                        });
-                    } else {
-                        GroupMeAPI.downloadMedia(group, mediaFolder, mediaCount, mainProgressBar);
-                    }
                 }
-            };
-            downloadThread.setDaemon(true);
-            downloadThread.start();
-        } else {
-            // TODO: Handle this case
-        }
+
+                if (!downloadMediaCheckBox.isSelected())
+                    return;
+
+                // Count media files
+                int mediaCount = GroupMeAPI.countMedia(group);
+                Platform.runLater(() -> {
+                    statusLabel.setText("Downloading " + mediaCount + " media items...");
+                });
+
+                // Make the media folder if it doesn't already exist
+                Path mediaFolderPath = Paths.get(groupFolderPath.toString(), "media");
+                File mediaFolder = mediaFolderPath.toFile();
+                if ((!mediaFolder.exists() || !mediaFolder.isDirectory()) && !mediaFolder.mkdirs()) {
+                    error("Failed to create folder " + mediaFolder.getAbsolutePath());
+                    return;
+                }
+
+                // Download media files
+                if (useMultithreadingCheckBox.isSelected()) {
+                    int numThreads = (int) numThreadSpinner.getValue();
+                    GroupMeAPI.downloadMediaMultithreaded(group, mediaFolder, numThreads, mainProgressBar, () -> {
+                        Platform.runLater(() -> {
+                            statusLabel.setText("Done archiving messages and media from \"" + group.path("name").asText() + "\"");
+                            beginArchivingButton.setDisable(false);
+                        });
+                    });
+                } else {
+                    GroupMeAPI.downloadMedia(group, mediaFolder, mediaCount, mainProgressBar);
+                }
+            }
+        };
+        downloadThread.setDaemon(true);
+        downloadThread.start();
         
         beginArchivingButton.setDisable(true);
     }
@@ -417,6 +399,33 @@ public class FXMLDocumentController implements Initializable {
         try {
             preferences.clear();
         } catch (BackingStoreException ex) {
+        }
+    }
+    
+    
+    /**
+     * Open a link for the user to get their GroupMe access token
+     * 
+     * @param event 
+     */
+    @FXML
+    private void handleOpenGetAccessTokenLinkAction(ActionEvent event) {
+        // Instruct the user
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText("How to obtain an API Key");
+        alert.setContentText("1. Log in at the link that just opened in the browser\n"
+        + "2. Ignore that the page says \"Not Found\"\n"
+        + "3. Copy the API key after the '=' in the URL\n"
+        + "4. Paste the copied API key (also known as an \"API Token\" in the text box");
+        alert.show();
+        
+        // Open a link where they can get the API key from the URL
+        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+            try {
+                Desktop.getDesktop().browse(new URI("https://oauth.groupme.com/oauth/authorize?client_id=9nx5F4NED0MtnQPyTbcweQ7XFkZB6XvOaUeI0THMSdTvsxAF"));
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
     }
 

@@ -67,12 +67,9 @@ public class GroupMeAPI {
                 result.put(group.path("name").asText(), group.path("group_id").asText());
             }
         } catch (Exception ex) {
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
-                    error("An unexpected error occurred while getting data from GroupMe. "
+            Platform.runLater(() -> {
+                error("An unexpected error occurred while getting data from GroupMe. "
                         + "Possibly, the response was malformed");
-                }
             });
             ex.printStackTrace();
             return null;
@@ -99,12 +96,9 @@ public class GroupMeAPI {
             
             return response;
         } catch (Exception ex) {
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
-                    error("An unexpected error occurred while getting data from GroupMe. "
+            Platform.runLater(() -> {
+                error("An unexpected error occurred while getting data from GroupMe. "
                         + "Possibly, the response was malformed");
-                }
             });
             ex.printStackTrace();
             return null;
@@ -116,11 +110,12 @@ public class GroupMeAPI {
      * Download all of the messages associated with the group and add them to a
      * list of messages in the groupInfo node
      * 
-     * @param group
-     * @return 
+     * @param group ObjectNode with information and messages of the group to be archived
+     * @param groupID ID of the group for use in the GroupMe API
+     * @param API_KEY GroupMe API Token
+     * @param progressBar ProgressBar to be updated as it proceeds
      */
     public static void getMessages(ObjectNode group, String groupID, String API_KEY, ProgressBar progressBar) {
-        String raw;
         try {
             // Get first 100 messages
             String url = "https://api.groupme.com/v3/groups/" + groupID + "/messages?limit=100&token=" + API_KEY;
@@ -136,12 +131,8 @@ public class GroupMeAPI {
             
             // Get remaining messages
             while (messageList.size() < totalCount) {
-                // TODO: Do this the right way, whatever that is (respect main thread and whatnot)
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        progressBar.setProgress((double) messageList.size() / totalCount);
-                    }
+                Platform.runLater(() -> {
+                    progressBar.setProgress((double) messageList.size() / totalCount);
                 });
                 
                 String beforeId = messageList.get(messageList.size() - 1).path("id").asText();
@@ -152,11 +143,8 @@ public class GroupMeAPI {
                 messages = (ArrayNode) response.path("messages");
                 messageList.addAll(messages);
             }
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
-                    progressBar.setProgress((double) 1.0);
-                }
+            Platform.runLater(() -> {
+                progressBar.setProgress((double) 1.0);
             });
         } catch (Exception ex) {
             Platform.runLater(new Runnable() {
@@ -197,8 +185,6 @@ public class GroupMeAPI {
     /**
      * Count the number of messages with downloadable media attachments
      * 
-     * TODO: Make this more efficient by enabling counting while messages are downloaded
-     * 
      * @param group JSON object with messages with media attachments to count
      * @return the number of messages with downloadable attachments
      */
@@ -224,6 +210,7 @@ public class GroupMeAPI {
      * 
      * @param group object with list of messages with attachments to download
      * @param mediaFolder folder in which to save downloaded media
+     * @param totalCount total number of media files to be downloaded -- used for progressBar
      * @param progressBar progress bar object to be updated with progress
      */
     public static void downloadMedia(ObjectNode group, File mediaFolder, int totalCount, ProgressBar progressBar) {
@@ -233,12 +220,13 @@ public class GroupMeAPI {
     
     
     /**
-     * TODO
+     * Loop over the messageList downloading each message attachment to the
+     * mediaFolder on a single thread
      * 
-     * @param messageList
-     * @param mediaFolder
-     * @param totalCount
-     * @param progressBar 
+     * @param messageList list of JsonNodes, each of which is a message
+     * @param mediaFolder folder into which media will be downloaded
+     * @param totalCount total expected number of media files to download
+     * @param progressBar ProgressBar object to be updated as media is downloaded
      */
     private static void downloadMediaFromMessages(JsonNode[] messageList, File mediaFolder, int totalCount, ProgressBar progressBar) {
         int seen = 0;
@@ -251,11 +239,8 @@ public class GroupMeAPI {
                 String type = attachment.path("type").asText();
                 if (type.equals("image") || type.equals("linked_image") || type.equals("video")) {
                     double progress = (double) seen / totalCount;
-                    Platform.runLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            progressBar.setProgress(progress);
-                        }
+                    Platform.runLater(() -> {
+                        progressBar.setProgress(progress);
                     });
                     
                     // Get filename
@@ -285,11 +270,8 @@ public class GroupMeAPI {
                 }
             }
         }
-        Platform.runLater(new Runnable() {
-            @Override
-            public void run() {
-                progressBar.setProgress((double) 1.0);
-            }
+        Platform.runLater(() -> {
+            progressBar.setProgress((double) 1.0);
         });
     }
     
@@ -335,7 +317,8 @@ public class GroupMeAPI {
     
     
     /**
-     * Produce messages for threads to download and consume
+     * Produce messages for threads to download and consume -- used for
+     * synchronizing various consumer threads that independently download media
      */
     private static class MessageProducer {
         int index;
@@ -349,7 +332,7 @@ public class GroupMeAPI {
             this.messageList = messageList;
             this.lock = new ReentrantLock();
             this.progressBar = progressBar;
-            this.onCompletion = onCompletion;
+            this.onCompletion = onCompletion; // Useful for changing UI when done
         }
         
         public JsonNode produce() {
@@ -365,11 +348,8 @@ public class GroupMeAPI {
                 }
 
                 double progress = (double) this.index / this.messageList.length;
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        progressBar.setProgress(progress);
-                    }
+                Platform.runLater(() -> {
+                    progressBar.setProgress(progress);
                 });
             } finally {
                 this.lock.unlock();
@@ -381,12 +361,15 @@ public class GroupMeAPI {
     
     
     /**
-     * TODO 
+     * Download media from all messages that have it and save to the mediaFolder.
+     * Create numThreads threads to use and have main thread use producer-consumer
+     * solution to synchronize threads' downloading of files
      * 
-     * @param group
-     * @param mediaFolder
-     * @param numThreads
-     * @param progressBar 
+     * @param group group object from which media will be downloaded
+     * @param mediaFolder folder into which downloaded media will be saved
+     * @param numThreads number of threads to use for downloading
+     * @param progressBar ProgressBar object to be updated as files are downloaded
+     * @param onCompletion run once the files have completed downloading
      */
     public static void downloadMediaMultithreaded(ObjectNode group, File mediaFolder, int numThreads, ProgressBar progressBar, Runnable onCompletion) {
         JsonNode[] messageList = mapper.convertValue(group.withArray("media_list"), JsonNode[].class);
@@ -398,8 +381,6 @@ public class GroupMeAPI {
             threads[i] = new Thread() {
                 @Override
                 public void run() {
-                    super.run();
-                    
                     JsonNode message = producer.produce();
                     while (message != null) {
                         downloadMediaSingle(message, mediaFolder);
