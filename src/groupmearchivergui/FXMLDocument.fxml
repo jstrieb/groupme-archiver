@@ -34,6 +34,7 @@
           </Menu>
           <Menu mnemonicParsing="false" text="Help">
             <items>
+                  <MenuItem mnemonicParsing="false" onAction="#handleOpenGetAccessTokenLinkAction" text="Get GroupMe access token" />
               <MenuItem mnemonicParsing="false" onAction="#handleAboutAction" text="About" />
             </items>
           </Menu>
