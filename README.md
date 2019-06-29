@@ -43,3 +43,5 @@ GroupMe Archiver depends on `JavaFX` and the `Jackson` JSON parsing library, and
 - Add icon, description, and other metadata
 - Build versions for various operating systems and updated versions of Java/JavaFX
 - Package and release command-line version for other operating systems
+- Scan media directory before downloading and only download files that don't
+  yet exist
